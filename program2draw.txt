@@ -1,0 +1,377 @@
+#---Figure1_Phenotype curve
+library(ggplot2)
+library(ggpubr)
+library(grid)
+library(gridExtra)
+stress <- read.csv("stress.csv",header = T, row.names = 1)
+control <- read.csv("control.csv",header = T, row.names = 1)
+time <- days
+seq1 <- sequence1
+stress_mean <- apply(stress, 2, mean)
+control_mean <- apply(control, 2, mean)
+
+stress_mean <- apply(stress, 2, mean)
+control_mean <- apply(control, 2, mean)
+
+fls2 <- function(x,y,t){
+  ye <- get_miu(x,t)
+  return(sum((ye-y)^2))
+}
+t <- seq(0,time,seq1)
+
+get_miu = function(x,t){
+  y = t[1]/(1 + t[2] * exp(-t[3] * x)) #- (t[4] * exp(-t[5] * x))
+  return(y)
+}
+y1 <- stress_mean
+tt1 <- c(26.77,1.77,0.02)
+p2 <- optim(tt1[1:3],fls2,method = "L-BFGS-B",lower = tt1*0.001,upper = tt1*30,x = t,y = y1)
+parameter<- p2$par
+opt_stress2 <- get_miu(seq(0,time,1),parameter) 
+
+y2 <- control_mean
+tt2 <- c(32.67,2.11,0.02)
+p2 <- optim(tt2[1:3],fls2,method = "L-BFGS-B",lower = tt2*0.001,upper = tt2*30,x = t,y = y2)
+parameter<- p2$par
+opt_control2 <- get_miu(seq(0,time,1),parameter) 
+
+pic1 <- ggplot()
+colnames(stress) <- NULL
+rownames(stress) <- NULL
+pic1 <- pic1 + theme(panel.grid = element_blank(),
+                     panel.background = element_rect(fill = 'transparent'),
+                     panel.border = element_rect(color = "black",fill = NA,size = 1.5)) +
+  scale_x_continuous(breaks = c(seq(0,time,seq1)),expand = c(0, 0)) +
+  scale_y_continuous(breaks = c(seq(0,time,seq1)),limits = c(0,time),expand = c(0, 0),
+                     guide = guide_axis(position ="right"))
+for (i in 1:length(stress[,1])) {
+  data1 <- data.frame(x = seq(0,time,seq1),y = unlist(c(stress[i,])))
+  pic1 <- pic1 + geom_line(data=data1, aes(x,y), col="#FF8F5F",alpha = 0.2,size = 1.2)
+}
+data1 <- data.frame(x = seq(0,time,1),y = unlist(c(opt_stress2)))
+pic1 <- pic1 + geom_line(data = data1,aes(x,y), col="#FF5A13",size = 2.5,alpha = 1.5) + 
+  labs(x = '', y = '') + 
+  theme(axis.title.x = element_text(size = 40),axis.title.y = element_text(size = 36),
+        axis.text = element_text(size = 40))
+
+pic1 <- pic1 + 
+  theme(plot.title = element_text(hjust = 0.5,size = 36),plot.margin=unit(c(1,2.5,1,0),'lines',)) +
+  annotate("text",x=48,y=70,label = "Stress",size = 18)
+
+pic2 <- ggplot()
+pic2 <- pic2 + theme(panel.grid = element_blank(), 
+                     panel.background = element_rect(fill = 'transparent'),
+                     panel.border = element_rect(color = "black",fill = NA,size = 1.5)) +
+  scale_x_continuous(breaks = c(seq(0,time,seq1)),expand = c(0, 0)) +
+  scale_y_continuous(breaks = c(seq(0,time,seq1)),limits = c(0,time),expand = c(0, 0))
+for (i in 1:length(control[,1])) {
+  data1 <- data.frame(x = seq(0,time,seq1),y = unlist(c(control[i,])))
+  pic2 <- pic2 + geom_line(data=data1, aes(x,y), col="#0095D6",alpha = 0.2,size = 1.2)
+}
+data1 <- data.frame(x = seq(0,time,1),y = unlist(c(opt_control2)))
+pic2 <- pic2 + geom_line(data = data1,aes(x,y), col="#296AFF",size = 2.5,alpha = 1) + 
+  labs(x = '', y = '') + 
+  theme(axis.title.x = element_text(size = 40),axis.title.y = element_text(size = 36),
+        axis.text = element_text(size = 40))
+
+pic2 <- pic2 + 
+  theme(plot.title = element_text(hjust = 0.5,size = 36),plot.margin=unit(c(1,0,1,0),'lines',))+
+  annotate("text",x=48,y=70,label = "Control",size = 18)
+p <- ggarrange( pic2,pic1,ncol= 2)
+
+#---Figure1_Manhatton
+setwd("path")
+load("LR.Rdata")
+setwd("path2")
+info <- read.table("position.csv",header = T,sep = ",")
+info[,5] <- 1:length(LR)
+
+info[,6] <- LR
+
+colnames(info)[6] <- "LR"
+colnames(info)[5] <- "order"
+colnames(info)[1] <- "chromosome"
+
+series <- QTL_line
+data2 <- data.frame(series,LR[series])
+names(data2) <- c("x","y")
+
+
+library(ggplot2)
+CHR <- info$chromosome
+rawdata1 <- data.frame(1:length(LR),LR,CHR)
+names(rawdata1) <- c("x","y","chr")
+
+group.num <- factor(rawdata1$chr,levels = unique(rawdata1$chr))
+x.break <- aggregate(rawdata1$x,by= list(group.num),FUN = median)
+x.break2 <- aggregate(rawdata1$x,by= list(group.num),FUN = length)
+rawdata1$y[series] <- 0
+
+viline <- matrix(NA,1,20)
+for (i in 1:20) {
+  viline[i] <- sum(x.break2$x[1:i])
+}
+
+p <- ggplot()
+p <- p +
+  geom_point(aes(x = rawdata1$x,y = rawdata1$y,
+                 color = group.num),show.legend = FALSE,shape = 19,size = 2) + 
+  scale_color_manual(values = rep(c('#008000', '#A9A9A9'), 11)) +
+  scale_x_continuous(breaks = x.break$x, labels = c(1:19,"scaffold"), expand = c(0, 0)) +
+  scale_y_continuous(expand = c(0, 0)) +
+  labs(x = 'Chromosome', y = 'LR') +
+  theme(panel.grid = element_blank(), 
+        panel.border = element_rect(color = "black",fill = NA),
+        panel.background = element_rect(fill = 'transparent'),
+        axis.title = element_text(size = 30),
+        axis.text = element_text(size = 30)) +
+  geom_vline(aes(xintercept=viline[1]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[2]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[3]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[4]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[5]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[6]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[7]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[8]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[9]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[10]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[11]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[12]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[13]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[14]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[seq1]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[16]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[17]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[18]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[19]),colour='#969696',linetype="solid",size = 1.2) 
+
+p <- p +geom_point(aes(x = data2$x,y = data2$y),shape = 18, color = "red",size = 6)
+
+#---Figure1_Cluster
+load("name.Rdata")
+series <- QTL_list
+control <- read.csv('control_effect.csv',row.names = 1,header = T)
+salt <- read.csv('stress_effect.csv',row.names = 1,header = T)
+rank <- matrix(NA,52,1)
+for (i in 1:52) {
+  rank[i] <- max(unlist(control[series[i],]),unlist(salt[series[i],]))
+}
+
+picture <- list()  
+for (i in 1:52) {
+  sit <- rank[i]
+  trait <- series[i]
+  data1 <- data.frame(x = 1:6,y = unlist(c(control[trait,])))
+  data2 <- data.frame(x = 1:6,y = unlist(c(salt[trait,])))
+  p <- ggplot() + geom_line(data = data1,aes(x,y),col="#FF8F5F",size = 2)
+  p <- p + geom_line(data = data2,aes(x,y),col="#0095D6",size = 2)
+  p <- p + theme(panel.grid = element_blank(), 
+                 panel.background = element_rect(fill = 'transparent'),
+                 panel.border = element_rect(color = "black",fill = NA,size = 1.5),
+                 axis.ticks.x = element_blank(),
+                 axis.text.x = element_blank(),
+                 axis.title.x = element_blank(),
+                 axis.title.y = element_blank(),
+                 axis.ticks.y = element_blank(),
+                 axis.text.y = element_blank(),
+                 plot.margin=unit(c(0,0,-0.2,-0.2),'lines')) +
+    annotate("text",x=2,y=0.98*max(unlist(c(control[trait,])),unlist(c(salt[trait,]))) ,
+             label = paste0("Q",trait),colour = "black",
+             size = 8)
+  picture[[sit]] <- p
+}  
+#---Figure2_Cluster
+ck <- read.csv('control1.csv',row.names = 1,header = T)
+salt <- read.csv('stress1.csv',row.names = 1,header = T)
+rank <- matrix(NA,99,1)
+for (i in 1:99) {
+  sit <- which(score == i)
+  datack <- ck[sit,]
+  datasalt <- salt[sit,]
+  rank[i] <- max(salt[sit,],ck[sit,])
+}
+rank <- rank(rank)
+qtl <- QTL_list
+
+fig2 <- list()
+t <- c(seq(0,time,seq1))
+for (i in 1:99) {
+  sit <- which(score  == rank[i])
+  datack <- ck[sit,]
+  datasalt <- salt[sit,]
+  series_length <- length(sit)
+  if (series_length > 300) {
+    series_length = 300
+  }
+  if (i %in% qtl) {
+    colo = "red"
+  }else{
+    colo = "black"
+  }
+  p2 <- ggplot()
+  for (o in 1:series_length) {
+    datack2 <- data.frame(x = t,y = unlist(c(datack[o,])))
+    p2 <- p2 + geom_line(data=datack2, aes(x,y), col="#0095D6",alpha = 0.35,size = 2)
+  }
+  for (o in 1:series_length) {
+    datasalt2 <- data.frame(x = t,y = unlist(c(datasalt[o,])))
+    p2 <- p2 + geom_line(data=datasalt2, aes(x,y), col="#FF8F5F",alpha = 0.35,size = 2)
+  }
+  ckdata_mean <- apply(datack, 2, mean)
+  saltdata_mean <- apply(datasalt, 2, mean)
+  ckdata5 <- data.frame(x = t,y = unlist(c(ckdata_mean)))
+  saltdata5 <- data.frame(x = t,y = unlist(c(saltdata_mean)))
+  p2 <- p2 + geom_line(data = ckdata5,aes(x,y), col="#296AFF",size = 3.5,alpha = 1.5)
+  p2 <- p2 + geom_line(data = saltdata5,aes(x,y), col="#FF5A13",size = 3.5,alpha = 1.5)
+  p2 <- p2 + theme(panel.grid = element_blank(), 
+                   panel.background = element_rect(fill = 'transparent'),
+                   panel.border = element_rect(color = "black",fill = NA,size = 1.5),
+                   axis.ticks.x = element_blank(),
+                   axis.text.x = element_blank(),
+                   axis.title.x = element_blank(),
+                   axis.title.y = element_blank(),
+                   axis.ticks.y = element_blank(),
+                   axis.text.y = element_blank(),
+                   plot.margin=unit(c(0,0,-0.2,-0.2),'lines')) +
+    annotate("text",x=20,y= 0.95*max(datack,datasalt),
+             label = paste0("M",i),colour = colo,
+             size = 8)
+  fig2[[i]] <- p2
+}
+#---Figure3_network
+setwd("path1")
+all <- dir()
+signifi <- read.csv("QTL.csv",header = T)
+marker <- as.numeric(signifi[,1])
+
+marklist <- list()
+for (i in 1:length(all)) {
+  load(all[i])
+  marklist[i] <- marker_list
+}
+marker_list <- marklist
+after <- c()
+for (i in 1:length(marker_list)){
+  dep <- marker_list[[i]][[1]]
+  ind <- marker_list[[i]][[2]]
+  effect <- marker_list[[i]][[5]]
+  one <- c()
+  for (j in 1:length(ind)) {
+    if(effect[j] >= 0){
+      type <- '+'
+    }else{
+      type <- '-'
+    }
+    one <- rbind(one,c(ind[j],dep,abs(effect[j]),type))
+  }
+  after <- rbind(after,one)
+}
+
+origin <- after
+nodes <- data.frame( names=names(table(c(origin[,1],origin[,2]))) )  
+nodes <- cbind( id=paste0( 's',1:length( nodes[,1] ) ),nodes )
+marker1 <- matrix(NA,length(marker),1)
+for (i in 1:length(marker)) {
+  marker1[i] <- which(as.numeric(nodes$names) == marker[i])
+}
+
+nodes$id <- as.character(nodes$id)
+nodes$names <- as.character(nodes$names)
+
+for (i in 1:length(origin[,1]) ){
+  origin[i,1] <- nodes$id[ which( nodes$names==origin[i,1] ) ]
+  origin[i,2] <- nodes$id[ which( nodes$names==origin[i,2] ) ]
+}
+
+origin[,c(3,4)] <- origin[,c(4,3)]
+nodes$names <- paste0("M",as.character(nodes$names))
+colnames(origin)<-c("from","to","type","weight")
+origin <- as.data.frame(origin)
+origin$from <- as.character(origin$from)
+origin$to <- as.character(origin$to)
+origin$type <- as.character(origin$type)
+origin$weight <- abs(as.numeric(as.character( origin$weight )))
+
+links <- origin
+links$edge.color <- NA
+for (i in 1:length( links[,1] )) {
+  if(links$type[i] == "-"){
+    links$edge.color[i]<-grDevices::adjustcolor("#377eb8", alpha=0.4) 
+  }
+  if(links$type[i] == "+"){
+    links$edge.color[i]<-grDevices::adjustcolor("#e41a1c", alpha=0.4) 
+  }
+}
+
+nodes$node.color <- "#fdae61"  
+nodesize <- c()
+nodesize[1:length(nodes[,1])] <- 1
+
+nodes$node.color[marker1] <- "#C60000" 
+
+for (i in 1:length(links[,1])) {
+  links$weight[i] = (links$weight[i]-min(links$weight))/(max(links$weight)-min(links$weight))
+}
+
+library("igraph")
+net <- graph_from_data_frame( d=links,vertices = nodes,directed = T )
+
+coor_w1<-layout_with_lgl(net)
+
+stand_coor <- data.frame( names=nodes$names,coor_w1 )
+stand_coor$names <- as.character( stand_coor$names )
+stand_coor$X1 <- as.numeric( stand_coor$X1 )
+stand_coor$X2 <- as.numeric( stand_coor$X2 )
+
+pdf(file = 'controllayer1.pdf',width = 12,height = 8)
+
+plot(net,edge.arrow.size=1, 
+     vertex.label=V(net)$names,
+     vertex.size=nodesize*6, 
+     vertex.label.cex=nodesize*1, 
+     edge.curved=0,
+     edge.color=E(net)$edge.color,
+     edge.frame.color=E(net)$edge.color,
+     edge.width=E(net)$weight*10,
+     vertex.color=V(net)$node.color,
+     layout=coor_w1,
+     vertex.label.font=2,
+     vertex.label.dist=1.1,
+     asp = 0.5
+)
+
+dev.off()
+#---Figure4_genetic effect
+da <- list()
+for (q in 1:2) {
+  no <- c(sit1,sit2)
+  p <- no[q]
+  o_mat <- all_net[[p]][[6]]
+  leng = length(o_mat[,1])
+  t = c(1:leng)
+  p1 <- ggplot()+
+    geom_hline(aes(yintercept=0), colour="grey", linetype="solid",size = 1.5)
+  for (i in 2:length(o_mat[1,])) {
+    data1 <- data.frame(x = t,y = o_mat[1:leng,i])
+    
+    p1 <- p1 + geom_smooth(data=data1, aes(x,y), col="#296AFF",size = 1.2,alpha = 0.8,se = F) +
+      theme(panel.grid = element_blank(), 
+            panel.border = element_rect(color = "black",fill = NA,size = 1.5), 
+            panel.background = element_rect(fill = 'transparent'),
+            axis.ticks.x = element_blank(),
+            axis.text.x = element_blank(),
+            axis.text.y = element_blank(),
+            axis.title.x = element_blank(),
+            axis.title.y = element_blank()) 
+  }
+  effect_in <- o_mat[,1]
+  data1 <- data.frame(x = t,y = effect_in[1:leng])
+  p1 <- p1 + scale_x_continuous(expand = c(0,0)) 
+  
+  p1 <- p1 + geom_smooth(data=data1, aes(x,y), col="#e41a1c",size = 1.2,alpha = 0.8,se = F) + 
+    labs(x = '', y = '') 
+  data2 <- data.frame(x = t,y = apply(o_mat,1,sum)[1:leng])
+  p1 <- p1 + geom_smooth(data=data2, aes(x,y), col="black",size = 1.2,alpha = 0.8,linetype="dashed",se = F) +
+    scale_y_continuous(expand = c(0, 0))
+  da[[q]] <- p1
+}
