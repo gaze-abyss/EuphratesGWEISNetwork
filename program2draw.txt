@@ -139,7 +139,7 @@ p <- p +
   geom_vline(aes(xintercept=viline[12]),colour='#969696',linetype="solid",size = 1.2) +
   geom_vline(aes(xintercept=viline[13]),colour='#969696',linetype="solid",size = 1.2) +
   geom_vline(aes(xintercept=viline[14]),colour='#969696',linetype="solid",size = 1.2) +
-  geom_vline(aes(xintercept=viline[seq1]),colour='#969696',linetype="solid",size = 1.2) +
+  geom_vline(aes(xintercept=viline[15]),colour='#969696',linetype="solid",size = 1.2) +
   geom_vline(aes(xintercept=viline[16]),colour='#969696',linetype="solid",size = 1.2) +
   geom_vline(aes(xintercept=viline[17]),colour='#969696',linetype="solid",size = 1.2) +
   geom_vline(aes(xintercept=viline[18]),colour='#969696',linetype="solid",size = 1.2) +
