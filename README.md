@@ -10,3 +10,7 @@ The supplementary.zip is the data used in the supplementary description, includi
 
 ## program2draw.txt
 The program2draw.txt is the code used to draw the pictures in the article.
+
+
+**If you have used code from this web page, please cite the article:** <br>
+`Wang Haojie, et al."Modeling genome-wide by environment interactions through omnigenic interactome networks."Cell Reports 35.6(2021):109114-109114.`
