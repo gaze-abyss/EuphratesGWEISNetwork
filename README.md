@@ -13,4 +13,4 @@ The program2draw.txt is the code used to draw the pictures in the article.
 
 
 ## If you have used code from this web page, please cite the article:
-`Wang Haojie, et al."Modeling genome-wide by environment interactions through omnigenic interactome networks."Cell Reports 35.6(2021):109114-109114.`
+`Wang Haojie, et al. Modeling genome-wide by environment interactions through omnigenic interactome networks. Cell Reports 35.6(2021):109114-109114.`
